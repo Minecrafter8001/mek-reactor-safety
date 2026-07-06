@@ -38,6 +38,10 @@ local TIME_WORDS = {
     ["h"] = "per hour",
 }
 
+local PRONUNCIATION_WORDS = {
+    ["fuel"] = "fyuel",
+}
+
 local function expandUnits(text)
     local expanded = tostring(text or "")
 
@@ -113,13 +117,6 @@ end
 local function getPlaybackVolume()
     local notifyConfig = config.notify or {}
     local volume = tonumber(notifyConfig.volume) or 1
-
-    if volume < 0 then
-        return 0
-    end
-    if volume > 3 then
-        return 3
-    end
     return volume
 end
 
@@ -128,6 +125,10 @@ local function formatForTTS(text)
     local wordGap = notifyConfig.tts_word_gap
 
     text = expandUnits(text)
+
+    for source, replacement in pairs(PRONUNCIATION_WORDS) do
+        text = text:gsub("%f[%a]" .. source .. "%f[%A]", replacement)
+    end
 
     if type(wordGap) ~= "string" or wordGap == "" then
         return text
