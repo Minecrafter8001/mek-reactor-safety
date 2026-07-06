@@ -55,8 +55,17 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
     print("")
 
     print(string.format("Temperature : %s K",     formatTrimmed(state.temp, 1)))
-    print(string.format("Burn Rate   : %s mB/t (actual: %s)",
-        formatTrimmed(state.burn_rate, 2), formatTrimmed(state.actual_burn_rate, 2)))
+    if state.burn_rate_pct and state.burn_rate_max then
+        print(string.format(
+            "Burn Rate   : %s%% of max (%s mB/t of %s mB/t)",
+            formatTrimmed(state.burn_rate_pct * 100, 1),
+            formatTrimmed(state.burn_rate, 2),
+            formatTrimmed(state.burn_rate_max, 2)
+        ))
+    else
+        print(string.format("Burn Rate   : %s mB/t (actual: %s)",
+            formatTrimmed(state.burn_rate, 2), formatTrimmed(state.actual_burn_rate, 2)))
+    end
     print(string.format("Fuel        : %.1f%%",  (state.fuel_pct        or 0) * 100))
     print(string.format("Coolant     : %.1f%%",  (state.coolant_pct     or 0) * 100))
     print(string.format("Waste       : %.1f%%",  (state.waste_pct       or 0) * 100))

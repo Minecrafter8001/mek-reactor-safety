@@ -21,6 +21,7 @@ local _prev_level      = nil
 local _reset_required  = false
 local _startup_checked = false
 local _lock_reason     = nil
+local _saved_burn_rate_pct = nil
 local _last_level      = STATES.NORMAL
 local _last_reason     = nil
 local _last_state      = nil
@@ -61,6 +62,24 @@ end
 
 local function formatPercent(value)
     return string.format("%.1f%%", (value or 0) * 100)
+end
+
+local function getBurnRatePercent(state)
+    local burn_max = state.burn_rate_max or 0
+    local burn_rate = state.burn_rate or 0
+
+    if burn_max <= 0 then
+        return nil, nil
+    end
+
+    return burn_rate / burn_max, burn_max
+end
+
+local function burnRateFromPercent(percent, burn_max)
+    if not burn_max or burn_max <= 0 or not percent then
+        return nil
+    end
+    return percent * burn_max
 end
 
 local function formatTrimmed(value, decimals)
@@ -237,21 +256,36 @@ function safety.check(reactor, state, radiation)
 
     elseif level == STATES.REDUCED then
         if state.active then
-            if _saved_burn_rate == nil then
-                _saved_burn_rate = state.burn_rate
-            end
-            local new_rate = math.max(
-                config.burn_rate.min,
-                state.burn_rate - config.burn_rate.reduce_step
-            )
-            if new_rate < state.burn_rate then
-                reactor.setBurnRate(new_rate)
-                _last_burn_reduction = { from = state.burn_rate, to = new_rate }
-                recordEvent(
-                    STATES.REDUCED,
-                    string.format("%s -> %s mB/t", formatTrimmed(state.burn_rate, 2), formatTrimmed(new_rate, 2))
-                )
-                events.emit("burn_reduced", { from = state.burn_rate, to = new_rate })
+            local current_pct, burn_max = getBurnRatePercent(state)
+            if current_pct and burn_max then
+                if _saved_burn_rate_pct == nil then
+                    _saved_burn_rate_pct = current_pct
+                end
+                local reduce_step_pct = config.burn_rate.reduce_step / burn_max
+                local min_pct = config.burn_rate.min / burn_max
+                local new_pct = math.max(min_pct, current_pct - reduce_step_pct)
+                if new_pct < current_pct then
+                    local new_rate = burnRateFromPercent(new_pct, burn_max)
+                    reactor.setBurnRate(new_rate)
+                    _last_burn_reduction = {
+                        from_pct = current_pct,
+                        to_pct = new_pct,
+                        from_rate = state.burn_rate,
+                        to_rate = new_rate,
+                        max_rate = burn_max,
+                    }
+                    recordEvent(
+                        STATES.REDUCED,
+                        string.format("%s%% -> %s%%", formatTrimmed(current_pct * 100, 1), formatTrimmed(new_pct * 100, 1))
+                    )
+                    events.emit("burn_reduced", {
+                        from_pct = current_pct,
+                        to_pct = new_pct,
+                        from_rate = state.burn_rate,
+                        to_rate = new_rate,
+                        max_rate = burn_max,
+                    })
+                end
             end
         end
         if _scrammed then tryRecover(reactor, state, radiation) end
@@ -262,9 +296,13 @@ function safety.check(reactor, state, radiation)
             events.emit("warning", { state = state, radiation = radiation })
         end
         -- Restore throttled burn rate once conditions are safe
-        if _saved_burn_rate ~= nil and state.active then
-            reactor.setBurnRate(_saved_burn_rate)
-            _saved_burn_rate = nil
+        if _saved_burn_rate_pct ~= nil and state.active then
+            local _, burn_max = getBurnRatePercent(state)
+            local restored_rate = burnRateFromPercent(_saved_burn_rate_pct, burn_max)
+            if restored_rate then
+                reactor.setBurnRate(restored_rate)
+            end
+            _saved_burn_rate_pct = nil
         end
         if _scrammed then
             tryRecover(reactor, state, radiation)
@@ -376,9 +414,9 @@ function safety.buildAnnouncement()
     elseif level == STATES.REDUCED then
         if assessment.burn_reduction then
             message = string.format(
-                "Reactor throttling down. Burn rate reduced from %s to %s mB per tick. %s.",
-                formatTrimmed(assessment.burn_reduction.from, 2),
-                formatTrimmed(assessment.burn_reduction.to, 2),
+                "Reactor throttling down. Burn rate reduced from %s%% to %s%% of max. %s.",
+                formatTrimmed((assessment.burn_reduction.from_pct or 0) * 100, 1),
+                formatTrimmed((assessment.burn_reduction.to_pct or 0) * 100, 1),
                 buildSummary(state)
             )
         else

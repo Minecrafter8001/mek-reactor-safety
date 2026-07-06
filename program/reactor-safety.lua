@@ -39,7 +39,17 @@ events.on("warning", function(data)
 end)
 
 events.on("burn_reduced", function(data)
-    logger.warn(string.format("Burn rate reduced: %s -> %s mB/t", data.from, data.to))
+    if data and data.from_pct and data.to_pct then
+        logger.warn(string.format(
+            "Burn rate reduced: %s%% -> %s%% of max (%s -> %s mB/t)",
+            string.format("%.1f", data.from_pct * 100),
+            string.format("%.1f", data.to_pct * 100),
+            string.format("%.2f", data.from_rate or 0),
+            string.format("%.2f", data.to_rate or 0)
+        ))
+    else
+        logger.warn(string.format("Burn rate reduced: %s -> %s mB/t", data.from, data.to))
+    end
     notify.warning("Reactor output reduced due to elevated temperature.")
 end)
 
