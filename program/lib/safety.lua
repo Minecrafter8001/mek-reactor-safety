@@ -1,5 +1,6 @@
 local config = require("lib.config")
 local events = require("lib.events")
+local environment = require("lib.environment")
 
 local safety = {}
 
@@ -47,10 +48,6 @@ local function formatTrimmed(value, decimals)
     return formatted
 end
 
-local function formatSievertsPerHour(value)
-    return formatTrimmed(value, 4) .. " Sieverts per hour"
-end
-
 local function joinParts(parts)
     if #parts == 0 then
         return ""
@@ -77,7 +74,7 @@ local function describeWarningReasons(state, radiation)
         reasons[#reasons + 1] = string.format("waste at %s", formatPercent(state.waste_pct))
     end
     if radiation >= config.radiation.warning then
-        reasons[#reasons + 1] = string.format("radiation at %s", formatSievertsPerHour(radiation))
+        reasons[#reasons + 1] = string.format("radiation at %s", environment.formatRadiation(radiation))
     end
 
     return reasons
@@ -93,7 +90,7 @@ local function describeScramReason(reason, state, radiation)
     elseif reason == "waste_critical" then
         return string.format("waste critical at %s", formatPercent(state.waste_pct))
     elseif reason == "radiation_critical" then
-        return string.format("radiation critical at %s", formatSievertsPerHour(radiation or 0))
+        return string.format("radiation critical at %s", environment.formatRadiation(radiation or 0))
     end
     return "an unknown critical condition"
 end
@@ -355,7 +352,7 @@ function safety.buildAnnouncement()
     end
 
     if assessment.radiation and assessment.radiation > 0 then
-        message = message .. string.format(" Radiation is %s.", formatSievertsPerHour(assessment.radiation))
+        message = message .. string.format(" Radiation is %s.", environment.formatRadiation(assessment.radiation))
     end
 
     if _damaged then

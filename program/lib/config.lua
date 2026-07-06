@@ -25,6 +25,7 @@ return {
     -- critical : SCRAM threshold
     -- announce_interval : minimum seconds between repeated radiation level TTS alerts
     radiation = {
+        baseline          = 9.99999e-8, -- 99.9999 nSv/h background level
         warning           = 1e-7,  -- ~100 nSv/h (background)
         critical          = 1e-3,  -- 1 mSv/h
         announce_interval = 60,    -- seconds

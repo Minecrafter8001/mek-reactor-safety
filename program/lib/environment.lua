@@ -8,6 +8,43 @@ local config = require("lib.config")
 local environment = {}
 local _sensor         = nil
 local _last_announce  = 0   -- os.epoch("utc") / 1000 timestamp of last TTS announcement
+environment.BASELINE_RADIATION = (config.radiation and config.radiation.baseline) or 9.99999e-8
+
+local RADIATION_UNITS = {
+    { factor = 1,     suffix = "Sv/h" },
+    { factor = 1e3,   suffix = "mSv/h" },
+    { factor = 1e6,   suffix = "µSv/h" },
+    { factor = 1e9,   suffix = "nSv/h" },
+    { factor = 1e12,  suffix = "pSv/h" },
+}
+
+local function formatTrimmed(value, decimals)
+    local formatted = string.format("%." .. tostring(decimals or 2) .. "f", value or 0)
+    formatted = formatted:gsub("0+$", ""):gsub("%.$", "")
+    if formatted == "-0" then
+        formatted = "0"
+    end
+    return formatted
+end
+
+local function pickRadiationUnit(value)
+    local magnitude = math.abs(value or 0)
+
+    for index = #RADIATION_UNITS, 1, -1 do
+        local unit = RADIATION_UNITS[index]
+        if magnitude * unit.factor >= 1 or index == 1 then
+            return unit
+        end
+    end
+
+    return RADIATION_UNITS[1]
+end
+
+--- Format a radiation value using the most readable unit.
+function environment.formatRadiation(value)
+    local unit = pickRadiationUnit(value)
+    return string.format("%s %s", formatTrimmed((value or 0) * unit.factor, 4), unit.suffix)
+end
 
 -- Maps Mekanism unit abbreviations to full spoken words for TTS.
 -- Abbreviations and multipliers from Mekanism's EnumUtils unit table.
@@ -51,19 +88,9 @@ function environment.getRadiation()
 end
 
 --- Returns the radiation level as a human-readable string suitable for TTS,
---- e.g. "125.3 nano Sievert per hour". Uses getRadiation() (table form).
+--- e.g. "99.9999 nSv/h". Uses the raw radiation reading.
 function environment.getFormattedLevel()
-    if not (_sensor and _sensor.getRadiation) then
-        return "unknown radiation level"
-    end
-    local ok, result = pcall(_sensor.getRadiation)
-    if not ok or type(result) ~= "table" then
-        return "unknown radiation level"
-    end
-    local unit_full = UNIT_NAMES[result.unit]
-    if unit_full == nil then unit_full = result.unit end
-    local sv = (unit_full ~= "") and (unit_full .. " Sievert") or "Sievert"
-    return string.format("%s %s per hour", result.radiation, sv)
+    return environment.formatRadiation(environment.getRadiation())
 end
 
 --- Returns a TTS announcement string if radiation exceeds config.radiation.warning
@@ -82,7 +109,7 @@ function environment.getRadiationAnnouncement()
         return nil
     end
     _last_announce = now
-    return "Radiation alert. " .. environment.getFormattedLevel()
+    return "Radiation alert. " .. environment.formatRadiation(raw)
 end
 
 return environment
