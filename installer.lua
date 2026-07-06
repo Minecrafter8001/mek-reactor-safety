@@ -83,7 +83,7 @@ for i = 1, #manifest.files do
         return
     end
 
-    local fileUrl = baseUrl .. "/" .. filePath
+    local fileUrl = baseUrl .. "/program/" .. filePath
     io.write("  " .. filePath .. "...")
 
     local body, fileErr = get(fileUrl)
