@@ -2,16 +2,16 @@
   "version": "1.0.0",
   "files": [
     { "path": "startup.lua" },
-    { "path": "dialing_computer.lua" },
-    { "path": "feedback_codes.json" },
-    { "path": "lib/address.lua" },
+    { "path": "reactor-safety.lua" },
+    { "path": "lib/alarm.lua" },
     { "path": "lib/config.lua" },
+    { "path": "lib/display.lua" },
+    { "path": "lib/environment.lua" },
     { "path": "lib/events.lua" },
-    { "path": "lib/feedback.lua" },
-    { "path": "lib/menu.lua" },
-    { "path": "lib/stargate.lua" },
-    { "path": "lib/ui.lua" },
-    { "path": "lib/updater.lua" },
-    { "path": "lib/util.lua" }
+    { "path": "lib/logger.lua" },
+    { "path": "lib/notify.lua" },
+    { "path": "lib/reactor.lua" },
+    { "path": "lib/safety.lua" },
+    { "path": "lib/speaker.lua" }
   ]
 }

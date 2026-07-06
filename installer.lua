@@ -2,7 +2,7 @@
 --General installer for my lua programs.
 
 
-baseUrl = "https://raw.githubusercontent.com/Minecrafter8001/dialing-computer-new-the-third-one/main/program/files"
+baseUrl = "https://raw.githubusercontent.com/Minecrafter8001/mek-reactor-safety/main/"
 baseUrl = baseUrl:gsub("/+$", "")
 
 local unserializeJSON = textutils.unserialiseJSON or textutils.unserializeJSON
