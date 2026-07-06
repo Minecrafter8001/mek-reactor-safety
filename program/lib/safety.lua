@@ -26,6 +26,30 @@ local _last_reason     = nil
 local _last_state      = nil
 local _last_radiation  = 0
 local _last_burn_reduction = nil
+local _last_event_kind = nil
+local _last_event_time  = nil
+local _last_event_note  = nil
+
+local function localTimestamp()
+    return os.date("%Y-%m-%d %H:%M:%S")
+end
+
+local function recordEvent(kind, note)
+    _last_event_kind = kind
+    _last_event_time = localTimestamp()
+    _last_event_note = note
+end
+
+local function eventLabel(kind)
+    if kind == STATES.SCRAM then
+        return "SCRAM"
+    elseif kind == STATES.REDUCED then
+        return "Throttle down"
+    elseif kind == STATES.LOCKED then
+        return "Lock"
+    end
+    return kind or "Unknown"
+end
 
 local function copyState(state)
     local result = {}
@@ -181,6 +205,9 @@ function safety.check(reactor, state, radiation)
     end
 
     if _reset_required and ((not state.active) or ((state.fuel_pct or 0) <= 0)) then
+        if _last_event_kind ~= STATES.LOCKED then
+            recordEvent(STATES.LOCKED, describeLockReason(state))
+        end
         _last_level = STATES.LOCKED
         _last_reason = _lock_reason
         _last_state = copyState(state)
@@ -204,6 +231,7 @@ function safety.check(reactor, state, radiation)
             if state.active then reactor.scram() end
             _reset_required = true
             _lock_reason = reason
+            recordEvent(STATES.SCRAM, describeScramReason(reason, state, radiation))
             events.emit("scram", { reason = reason, state = state })
         end
 
@@ -219,6 +247,10 @@ function safety.check(reactor, state, radiation)
             if new_rate < state.burn_rate then
                 reactor.setBurnRate(new_rate)
                 _last_burn_reduction = { from = state.burn_rate, to = new_rate }
+                recordEvent(
+                    STATES.REDUCED,
+                    string.format("%s -> %s mB/t", formatTrimmed(state.burn_rate, 2), formatTrimmed(new_rate, 2))
+                )
                 events.emit("burn_reduced", { from = state.burn_rate, to = new_rate })
             end
         end
@@ -303,6 +335,9 @@ function safety.getLastAssessment()
         state = _last_state,
         radiation = _last_radiation,
         burn_reduction = _last_burn_reduction,
+        event_kind = _last_event_kind,
+        event_time = _last_event_time,
+        event_note = _last_event_note,
     }
 end
 
@@ -353,6 +388,14 @@ function safety.buildAnnouncement()
 
     if assessment.radiation and assessment.radiation > 0 then
         message = message .. string.format(" Radiation is %s.", environment.formatRadiation(assessment.radiation))
+    end
+
+    if _last_event_time then
+        message = message .. string.format(" Last event: %s at %s", eventLabel(_last_event_kind), _last_event_time)
+        if _last_event_note and _last_event_note ~= "" then
+            message = message .. string.format(" (%s)", _last_event_note)
+        end
+        message = message .. "."
     end
 
     if _damaged then

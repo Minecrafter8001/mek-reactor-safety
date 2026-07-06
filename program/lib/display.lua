@@ -1,5 +1,6 @@
 local display = {}
 local environment = require("lib.environment")
+local safety = require("lib.safety")
 
 local STATE_COLORS = {
     NORMAL  = colors and colors.green  or nil,
@@ -65,6 +66,15 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
         setColor(STATE_COLORS.WARNING)
         print(string.format("Radiation   : %s", environment.formatRadiation(radiation)))
         resetColor()
+    end
+
+    local assessment = safety.getLastAssessment()
+    if assessment.event_time then
+        print("")
+        print(string.format("Last Event  : %s at %s", assessment.event_kind or "EVENT", assessment.event_time))
+        if assessment.event_note and assessment.event_note ~= "" then
+            print(string.format("Event Note  : %s", assessment.event_note))
+        end
     end
 
     print("")
