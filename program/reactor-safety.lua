@@ -22,10 +22,15 @@ events.on("scram", function(data)
     notify.critical("Emergency reactor shutdown. " .. (data.reason or ""))
 end)
 
-events.on("recovered", function()
-    logger.event("Reactor recovered and restarted")
+events.on("recovered", function(data)
+    if data and data.manual then
+        logger.event("Manual reactor reset confirmed")
+        notify.info("Manual reset confirmed. Reactor restarting.")
+    else
+        logger.event("Reactor recovered and restarted")
+        notify.info("Reactor conditions safe. Restarting.")
+    end
     alarm.disable()
-    notify.info("Reactor conditions safe. Restarting.")
 end)
 
 events.on("warning", function(data)
@@ -34,7 +39,7 @@ events.on("warning", function(data)
 end)
 
 events.on("burn_reduced", function(data)
-    logger.warn(string.format("Burn rate reduced: %.2f -> %.2f mB/t", data.from, data.to))
+    logger.warn(string.format("Burn rate reduced: %s -> %s mB/t", data.from, data.to))
     notify.warning("Reactor output reduced due to elevated temperature.")
 end)
 
@@ -49,7 +54,14 @@ parallel.waitForAll(
             local state     = reactor.getState()
             local radiation = environment.getRadiation()
             local level     = safety.check(reactor, state, radiation)
-            display.render(state, level, radiation, safety.isScrammed(), safety.isDamaged())
+            display.render(
+                state,
+                level,
+                radiation,
+                safety.isScrammed(),
+                safety.isResetRequired(),
+                safety.isDamaged()
+            )
 
             local rad_msg = environment.getRadiationAnnouncement()
             if rad_msg then
@@ -67,6 +79,15 @@ parallel.waitForAll(
                 local message = safety.buildAnnouncement()
                 logger.event("Status announcement requested")
                 notify.info(message)
+            elseif keyCode == keys.r then
+                local ok, reason = safety.requestReset(reactor)
+                if ok then
+                    logger.event("Manual reset confirmed")
+                    notify.info("Reset confirmed. Reactor restart requested.")
+                else
+                    logger.warn("Reset request denied: " .. (reason or "unknown"))
+                    notify.warning("Reset not allowed. " .. (reason or "unknown"))
+                end
             end
         end
     end,

@@ -7,6 +7,122 @@ local speaker = {}
 local _speakers = {}
 local _queue    = {}
 
+local SCALE_WORDS = {
+    ["f"] = "femto",
+    ["p"] = "pico",
+    ["n"] = "nano",
+    ["µ"] = "micro",
+    ["m"] = "milli",
+    [""]  = "",
+    ["k"] = "kilo",
+    ["M"] = "mega",
+    ["G"] = "giga",
+    ["T"] = "tera",
+    ["P"] = "peta",
+    ["E"] = "exa",
+    ["Z"] = "zetta",
+    ["Y"] = "yotta",
+}
+
+local UNIT_WORDS = {
+    ["B"]  = "bucket",
+    ["Sv"] = "sieverts",
+    ["K"]  = "Kelvin",
+}
+
+local TIME_WORDS = {
+    ["t"] = "per tick",
+    ["m"] = "per minute",
+    ["h"] = "per hour",
+}
+
+local function expandUnits(text)
+    local expanded = tostring(text or "")
+
+    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(B)([/][th])", function(scale, unit, time)
+        local parts = {}
+        local scaleWord = SCALE_WORDS[scale] or scale
+        local unitWord = UNIT_WORDS[unit] or unit
+        local timeWord = TIME_WORDS[time:sub(2, 2)] or time
+
+        if scaleWord ~= "" then
+            parts[#parts + 1] = scaleWord
+        end
+        parts[#parts + 1] = unitWord
+        parts[#parts + 1] = timeWord
+        return table.concat(parts, " ")
+    end)
+
+    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(Sv)([/][th])", function(scale, unit, time)
+        local parts = {}
+        local scaleWord = SCALE_WORDS[scale] or scale
+        local unitWord = UNIT_WORDS[unit] or unit
+        local timeWord = TIME_WORDS[time:sub(2, 2)] or time
+
+        if scaleWord ~= "" then
+            parts[#parts + 1] = scaleWord
+        end
+        parts[#parts + 1] = unitWord
+        parts[#parts + 1] = timeWord
+        return table.concat(parts, " ")
+    end)
+
+    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(B)", function(scale, unit)
+        local parts = {}
+        local scaleWord = SCALE_WORDS[scale] or scale
+        local unitWord = UNIT_WORDS[unit] or unit
+
+        if scaleWord ~= "" then
+            parts[#parts + 1] = scaleWord
+        end
+        parts[#parts + 1] = unitWord
+        return table.concat(parts, " ")
+    end)
+
+    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(Sv)", function(scale, unit)
+        local parts = {}
+        local scaleWord = SCALE_WORDS[scale] or scale
+        local unitWord = UNIT_WORDS[unit] or unit
+
+        if scaleWord ~= "" then
+            parts[#parts + 1] = scaleWord
+        end
+        parts[#parts + 1] = unitWord
+        return table.concat(parts, " ")
+    end)
+
+    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(K)", function(scale, unit)
+        local parts = {}
+        local scaleWord = SCALE_WORDS[scale] or scale
+        local unitWord = UNIT_WORDS[unit] or unit
+
+        if scaleWord ~= "" then
+            parts[#parts + 1] = scaleWord
+        end
+        parts[#parts + 1] = unitWord
+        return table.concat(parts, " ")
+    end)
+
+    expanded = expanded:gsub("%%", " percent")
+
+    return expanded
+end
+
+local function formatForTTS(text)
+    local notifyConfig = require("lib.config").notify or {}
+    local wordGap = notifyConfig.tts_word_gap
+
+    text = expandUnits(text)
+
+    if type(wordGap) ~= "string" or wordGap == "" then
+        return text
+    end
+
+    local normalized = tostring(text or "")
+    normalized = normalized:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+    return normalized:gsub(" ", wordGap)
+end
+
 --- Locate all connected speaker peripherals.
 function speaker.init()
     for _, name in ipairs(peripheral.getNames()) do
@@ -51,7 +167,7 @@ end
 --- @param text  string  message to speak
 --- @param voice string  espeak voice id, or "" for the server default
 local function say(text, voice)
-    local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(text)
+    local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(formatForTTS(text))
     if voice and voice ~= "" then
         url = url .. "&voice=" .. textutils.urlEncode(voice)
     end
