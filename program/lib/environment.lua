@@ -15,7 +15,6 @@ local RADIATION_UNITS = {
     { factor = 1e3,   suffix = "mSv/h" },
     { factor = 1e6,   suffix = "µSv/h" },
     { factor = 1e9,   suffix = "nSv/h" },
-    { factor = 1e12,  suffix = "pSv/h" },
 }
 
 local function formatTrimmed(value, decimals)
@@ -32,7 +31,7 @@ local function pickRadiationUnit(value)
 
     for index = #RADIATION_UNITS, 1, -1 do
         local unit = RADIATION_UNITS[index]
-        if magnitude * unit.factor >= 1 or index == 1 then
+        if magnitude * unit.factor >= 1 or index == #RADIATION_UNITS then
             return unit
         end
     end
