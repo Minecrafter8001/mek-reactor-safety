@@ -18,7 +18,13 @@ local RADIATION_UNITS = {
 }
 
 local function formatTrimmed(value, decimals)
-    local formatted = string.format("%." .. tostring(decimals or 2) .. "f", value or 0)
+    local places = math.max(0, math.floor(tonumber(decimals) or 2))
+    local scale = 10 ^ places
+    local number = tonumber(value) or 0
+    local truncated = (number >= 0)
+        and (math.floor(number * scale) / scale)
+        or (math.ceil(number * scale) / scale)
+    local formatted = string.format("%." .. tostring(places) .. "f", truncated)
     formatted = formatted:gsub("0+$", ""):gsub("%.$", "")
     if formatted == "-0" then
         formatted = "0"
