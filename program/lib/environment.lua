@@ -52,15 +52,8 @@ end
 local function formatPeripheralRadiation(value, unit)
     local number = tonumber(value) or 0
     local normalizedUnit = sanitizeUnit(unit)
-    local rendered = tostring(number)
-    if rendered:find("e", 1, true) or rendered:find("E", 1, true) then
-        rendered = utils.formatTrimmed(number, 6)
-    else
-        rendered = rendered:gsub("0+$", ""):gsub("%.$", "")
-        if rendered == "-0" then
-            rendered = "0"
-        end
-    end
+    -- Always truncate for display/TTS so values never round up (e.g. 99.9999 -> 100).
+    local rendered = utils.formatTrimmed(number, 6)
     return string.format("%s %s/h", rendered, normalizedUnit)
 end
 
