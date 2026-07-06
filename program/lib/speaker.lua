@@ -42,72 +42,53 @@ local PRONUNCIATION_WORDS = {
     ["fuel"] = "fyuel",
 }
 
+local PREFIX_PATTERN = "[fpnµmkMGTPEZY]?"
+
+local function expandScaled(scale, unit, time)
+    local parts = {}
+    local scaleWord = SCALE_WORDS[scale] or scale
+    local unitWord = UNIT_WORDS[unit] or unit
+
+    if scaleWord ~= "" then
+        parts[#parts + 1] = scaleWord
+    end
+    parts[#parts + 1] = unitWord
+
+    if time and time ~= "" then
+        local timeWord = TIME_WORDS[time] or time
+        parts[#parts + 1] = timeWord
+    end
+
+    return table.concat(parts, " ")
+end
+
+local function expandScaledWithTime(text, units)
+    local expanded = text
+    for _, unit in ipairs(units) do
+        local pattern = "(" .. PREFIX_PATTERN .. ")(" .. unit .. ")([/][th])"
+        expanded = expanded:gsub(pattern, function(scale, matchedUnit, time)
+            return expandScaled(scale, matchedUnit, time:sub(2, 2))
+        end)
+    end
+    return expanded
+end
+
+local function expandScaledWithoutTime(text, units)
+    local expanded = text
+    for _, unit in ipairs(units) do
+        local pattern = "(" .. PREFIX_PATTERN .. ")(" .. unit .. ")"
+        expanded = expanded:gsub(pattern, function(scale, matchedUnit)
+            return expandScaled(scale, matchedUnit)
+        end)
+    end
+    return expanded
+end
+
 local function expandUnits(text)
     local expanded = tostring(text or "")
 
-    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(B)([/][th])", function(scale, unit, time)
-        local parts = {}
-        local scaleWord = SCALE_WORDS[scale] or scale
-        local unitWord = UNIT_WORDS[unit] or unit
-        local timeWord = TIME_WORDS[time:sub(2, 2)] or time
-
-        if scaleWord ~= "" then
-            parts[#parts + 1] = scaleWord
-        end
-        parts[#parts + 1] = unitWord
-        parts[#parts + 1] = timeWord
-        return table.concat(parts, " ")
-    end)
-
-    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(Sv)([/][th])", function(scale, unit, time)
-        local parts = {}
-        local scaleWord = SCALE_WORDS[scale] or scale
-        local unitWord = UNIT_WORDS[unit] or unit
-        local timeWord = TIME_WORDS[time:sub(2, 2)] or time
-
-        if scaleWord ~= "" then
-            parts[#parts + 1] = scaleWord
-        end
-        parts[#parts + 1] = unitWord
-        parts[#parts + 1] = timeWord
-        return table.concat(parts, " ")
-    end)
-
-    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(B)", function(scale, unit)
-        local parts = {}
-        local scaleWord = SCALE_WORDS[scale] or scale
-        local unitWord = UNIT_WORDS[unit] or unit
-
-        if scaleWord ~= "" then
-            parts[#parts + 1] = scaleWord
-        end
-        parts[#parts + 1] = unitWord
-        return table.concat(parts, " ")
-    end)
-
-    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(Sv)", function(scale, unit)
-        local parts = {}
-        local scaleWord = SCALE_WORDS[scale] or scale
-        local unitWord = UNIT_WORDS[unit] or unit
-
-        if scaleWord ~= "" then
-            parts[#parts + 1] = scaleWord
-        end
-        parts[#parts + 1] = unitWord
-        return table.concat(parts, " ")
-    end)
-
-    expanded = expanded:gsub("([fpnµmkMGTPEZY]?)(K)", function(scale, unit)
-        local parts = {}
-        local scaleWord = SCALE_WORDS[scale] or scale
-        local unitWord = UNIT_WORDS[unit] or unit
-
-        if scaleWord ~= "" then
-            parts[#parts + 1] = scaleWord
-        end
-        parts[#parts + 1] = unitWord
-        return table.concat(parts, " ")
-    end)
+    expanded = expandScaledWithTime(expanded, { "B", "Sv" })
+    expanded = expandScaledWithoutTime(expanded, { "B", "Sv", "K" })
 
     expanded = expanded:gsub("%%", " percent")
 

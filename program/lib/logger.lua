@@ -2,16 +2,13 @@
 -- Entries are buffered and flushed in batches to reduce disk I/O.
 
 local config = require("lib.config")
+local utils = require("lib.utils")
 
 local logger = {}
 
 local _path    = (config.log and config.log.path)       or "/logs/reactor.log"
 local _max_buf = (config.log and config.log.max_buffer) or 10
 local _buffer  = {}
-
-local function localTimestamp()
-    return os.date("%Y-%m-%d %H:%M:%S")
-end
 
 local function ensureDir()
     local dir = _path:match("^(.*)/[^/]+$")
@@ -34,7 +31,7 @@ local function flush()
 end
 
 local function write(level, msg)
-    local entry = string.format("[%s][%s] %s", localTimestamp(), level, msg)
+    local entry = string.format("[%s][%s] %s", utils.localTimestamp(), level, msg)
     table.insert(_buffer, entry)
     if #_buffer >= _max_buf then
         flush()

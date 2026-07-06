@@ -4,6 +4,7 @@
 -- is found or when Mekanism is not installed.
 
 local config = require("lib.config")
+local utils = require("lib.utils")
 
 local environment = {}
 local _sensor         = nil
@@ -16,21 +17,6 @@ local RADIATION_UNITS = {
     { factor = 1e6,   suffix = "µSv/h" },
     { factor = 1e9,   suffix = "nSv/h" },
 }
-
-local function formatTrimmed(value, decimals)
-    local places = math.max(0, math.floor(tonumber(decimals) or 2))
-    local scale = 10 ^ places
-    local number = tonumber(value) or 0
-    local truncated = (number >= 0)
-        and (math.floor(number * scale) / scale)
-        or (math.ceil(number * scale) / scale)
-    local formatted = string.format("%." .. tostring(places) .. "f", truncated)
-    formatted = formatted:gsub("0+$", ""):gsub("%.$", "")
-    if formatted == "-0" then
-        formatted = "0"
-    end
-    return formatted
-end
 
 local function pickRadiationUnit(value)
     local magnitude = math.abs(value or 0)
@@ -48,27 +34,8 @@ end
 --- Format a radiation value using the most readable unit.
 function environment.formatRadiation(value)
     local unit = pickRadiationUnit(value)
-    return string.format("%s %s", formatTrimmed((value or 0) * unit.factor, 4), unit.suffix)
+    return string.format("%s %s", utils.formatTrimmed((value or 0) * unit.factor, 4), unit.suffix)
 end
-
--- Maps Mekanism unit abbreviations to full spoken words for TTS.
--- Abbreviations and multipliers from Mekanism's EnumUtils unit table.
-local UNIT_NAMES = {
-    ["f"] = "femto",
-    ["p"] = "pico",
-    ["n"] = "nano",
-    ["µ"] = "micro",
-    ["m"] = "milli",
-    [""]  = "",
-    ["k"] = "kilo",
-    ["M"] = "mega",
-    ["G"] = "giga",
-    ["T"] = "tera",
-    ["P"] = "peta",
-    ["E"] = "exa",
-    ["Z"] = "zetta",
-    ["Y"] = "yotta",
-}
 
 --- Locate an environmental sensor peripheral.
 function environment.init()

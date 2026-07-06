@@ -1,6 +1,7 @@
 local display = {}
 local environment = require("lib.environment")
 local safety = require("lib.safety")
+local utils = require("lib.utils")
 
 local STATE_COLORS = {
     NORMAL  = colors and colors.green  or nil,
@@ -28,21 +29,6 @@ local function resetColor()
     end
 end
 
-local function formatTrimmed(value, decimals)
-    local places = math.max(0, math.floor(tonumber(decimals) or 2))
-    local scale = 10 ^ places
-    local number = tonumber(value) or 0
-    local truncated = (number >= 0)
-        and (math.floor(number * scale) / scale)
-        or (math.ceil(number * scale) / scale)
-    local formatted = string.format("%." .. tostring(places) .. "f", truncated)
-    formatted = formatted:gsub("0+$", ""):gsub("%.$", "")
-    if formatted == "-0" then
-        formatted = "0"
-    end
-    return formatted
-end
-
 --- Render the full reactor status screen.
 --- @param state     table   snapshot from reactor.getState()
 --- @param level     string  STATES value from safety module
@@ -60,22 +46,22 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
     resetColor()
     print("")
 
-    print(string.format("Temperature : %s K",     formatTrimmed(state.temp, 1)))
+    print(string.format("Temperature : %s K",     utils.formatTrimmed(state.temp, 1)))
     if state.burn_rate_pct and state.burn_rate_max then
         print(string.format(
             "Burn Rate   : %s%% of max (%s mB/t of %s mB/t)",
-            formatTrimmed(state.burn_rate_pct * 100, 1),
-            formatTrimmed(state.burn_rate, 2),
-            formatTrimmed(state.burn_rate_max, 2)
+            utils.formatTrimmed(state.burn_rate_pct * 100, 1),
+            utils.formatTrimmed(state.burn_rate, 2),
+            utils.formatTrimmed(state.burn_rate_max, 2)
         ))
     else
         print(string.format("Burn Rate   : %s mB/t (actual: %s)",
-            formatTrimmed(state.burn_rate, 2), formatTrimmed(state.actual_burn_rate, 2)))
+            utils.formatTrimmed(state.burn_rate, 2), utils.formatTrimmed(state.actual_burn_rate, 2)))
     end
     print(string.format("Fuel        : %.1f%%",  (state.fuel_pct        or 0) * 100))
     print(string.format("Coolant     : %.1f%%",  (state.coolant_pct     or 0) * 100))
     print(string.format("Waste       : %.1f%%",  (state.waste_pct       or 0) * 100))
-    print(string.format("Damage      : %s%%",    formatTrimmed(state.damage, 2)))
+    print(string.format("Damage      : %s%%",    utils.formatTrimmed(state.damage, 2)))
 
     if radiation and radiation > 0 then
         setColor(STATE_COLORS.WARNING)

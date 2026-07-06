@@ -1,6 +1,7 @@
 local config = require("lib.config")
 local events = require("lib.events")
 local environment = require("lib.environment")
+local utils = require("lib.utils")
 
 local safety = {}
 
@@ -31,13 +32,9 @@ local _last_event_kind = nil
 local _last_event_time  = nil
 local _last_event_note  = nil
 
-local function localTimestamp()
-    return os.date("%Y-%m-%d %H:%M:%S")
-end
-
 local function recordEvent(kind, note)
     _last_event_kind = kind
-    _last_event_time = localTimestamp()
+    _last_event_time = utils.localTimestamp()
     _last_event_note = note
 end
 
@@ -82,21 +79,6 @@ local function burnRateFromPercent(percent, burn_max)
     return percent * burn_max
 end
 
-local function formatTrimmed(value, decimals)
-    local places = math.max(0, math.floor(tonumber(decimals) or 2))
-    local scale = 10 ^ places
-    local number = tonumber(value) or 0
-    local truncated = (number >= 0)
-        and (math.floor(number * scale) / scale)
-        or (math.ceil(number * scale) / scale)
-    local formatted = string.format("%." .. tostring(places) .. "f", truncated)
-    formatted = formatted:gsub("0+$", ""):gsub("%.$", "")
-    if formatted == "-0" then
-        formatted = "0"
-    end
-    return formatted
-end
-
 local function joinParts(parts)
     if #parts == 0 then
         return ""
@@ -114,7 +96,7 @@ local function describeWarningReasons(state, radiation)
     local reasons = {}
 
     if state.temp >= config.temp.warning then
-        reasons[#reasons + 1] = string.format("temperature at %s K", formatTrimmed(state.temp, 1))
+        reasons[#reasons + 1] = string.format("temperature at %s K", utils.formatTrimmed(state.temp, 1))
     end
     if state.coolant_pct <= config.coolant.warning then
         reasons[#reasons + 1] = string.format("coolant at %s", formatPercent(state.coolant_pct))
@@ -131,9 +113,9 @@ end
 
 local function describeScramReason(reason, state, radiation)
     if reason == "reactor_damaged" then
-        return string.format("reactor damage detected at %s%%", formatTrimmed(state.damage or 0, 2))
+        return string.format("reactor damage detected at %s%%", utils.formatTrimmed(state.damage or 0, 2))
     elseif reason == "temp_critical" then
-        return string.format("temperature critical at %s K", formatTrimmed(state.temp or 0, 1))
+        return string.format("temperature critical at %s K", utils.formatTrimmed(state.temp or 0, 1))
     elseif reason == "coolant_critical" then
         return string.format("coolant critical at %s", formatPercent(state.coolant_pct))
     elseif reason == "waste_critical" then
@@ -146,11 +128,11 @@ end
 
 local function buildSummary(state)
     local parts = {
-        string.format("temperature %s K", formatTrimmed(state.temp or 0, 1)),
+        string.format("temperature %s K", utils.formatTrimmed(state.temp or 0, 1)),
         string.format("fuel %s", formatPercent(state.fuel_pct)),
         string.format("coolant %s", formatPercent(state.coolant_pct)),
         string.format("waste %s", formatPercent(state.waste_pct)),
-        string.format("damage %s%%", formatTrimmed(state.damage or 0, 2)),
+        string.format("damage %s%%", utils.formatTrimmed(state.damage or 0, 2)),
     }
 
     if state.active ~= nil then
@@ -282,7 +264,7 @@ function safety.check(reactor, state, radiation)
                     }
                     recordEvent(
                         STATES.REDUCED,
-                        string.format("%s%% -> %s%%", formatTrimmed(current_pct * 100, 1), formatTrimmed(new_pct * 100, 1))
+                        string.format("%s%% -> %s%%", utils.formatTrimmed(current_pct * 100, 1), utils.formatTrimmed(new_pct * 100, 1))
                     )
                     events.emit("burn_reduced", {
                         from_pct = current_pct,
@@ -421,8 +403,8 @@ function safety.buildAnnouncement()
         if assessment.burn_reduction then
             message = string.format(
                 "Reactor throttling down. Burn rate reduced from %s%% to %s%% of max. %s.",
-                formatTrimmed((assessment.burn_reduction.from_pct or 0) * 100, 1),
-                formatTrimmed((assessment.burn_reduction.to_pct or 0) * 100, 1),
+                utils.formatTrimmed((assessment.burn_reduction.from_pct or 0) * 100, 1),
+                utils.formatTrimmed((assessment.burn_reduction.to_pct or 0) * 100, 1),
                 buildSummary(state)
             )
         else

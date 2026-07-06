@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "files": [
     { "path": "startup.lua" },
     { "path": "reactor-safety.lua" },
@@ -12,6 +12,7 @@
     { "path": "lib/notify.lua" },
     { "path": "lib/reactor.lua" },
     { "path": "lib/safety.lua" },
-    { "path": "lib/speaker.lua" }
+    { "path": "lib/speaker.lua" },
+    { "path": "lib/utils.lua" }
   ]
 }
