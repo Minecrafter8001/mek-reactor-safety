@@ -7,6 +7,8 @@ local speaker = {}
 local _speakers = {}
 local _queue    = {}
 
+local config = require("lib.config")
+
 local SCALE_WORDS = {
     ["f"] = "femto",
     ["p"] = "pico",
@@ -108,8 +110,21 @@ local function expandUnits(text)
     return expanded
 end
 
+local function getPlaybackVolume()
+    local notifyConfig = config.notify or {}
+    local volume = tonumber(notifyConfig.volume) or 1
+
+    if volume < 0 then
+        return 0
+    end
+    if volume > 3 then
+        return 3
+    end
+    return volume
+end
+
 local function formatForTTS(text)
-    local notifyConfig = require("lib.config").notify or {}
+    local notifyConfig = config.notify or {}
     local wordGap = notifyConfig.tts_word_gap
 
     text = expandUnits(text)
@@ -143,11 +158,12 @@ function speaker.available() return #_speakers > 0 end
 
 --- Play a decoded DFPWM audio buffer through all speakers simultaneously.
 --- Blocks (yielding) until every speaker has accepted the buffer.
-local function playBufferAll(buffer)
+local function playBufferAll(buffer, volume)
+    volume = volume or getPlaybackVolume()
     -- First pass: submit to all speakers; record those that rejected (buffer full).
     local retry = {}
     for _, s in ipairs(_speakers) do
-        if not s.handle.playAudio(buffer) then
+        if not s.handle.playAudio(buffer, volume) then
             retry[s.name] = s.handle
         end
     end
@@ -155,7 +171,7 @@ local function playBufferAll(buffer)
     while next(retry) do
         local _, name = os.pullEvent("speaker_audio_empty")
         local h = retry[name]
-        if h and h.playAudio(buffer) then
+        if h and h.playAudio(buffer, volume) then
             retry[name] = nil
         end
         -- If h.playAudio still returns false the speaker is still busy;
@@ -176,10 +192,11 @@ local function say(text, voice)
     if not response then return end  -- network failure; skip message
 
     local decoder = require("cc.audio.dfpwm").make_decoder()
+    local volume = getPlaybackVolume()
     while true do
         local chunk = response.read(16 * 1024)
         if not chunk then break end
-        playBufferAll(decoder(chunk))
+        playBufferAll(decoder(chunk), volume)
     end
     response.close()
 end

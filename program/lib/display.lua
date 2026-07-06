@@ -62,7 +62,7 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
 
     if radiation and radiation > 0 then
         setColor(STATE_COLORS.WARNING)
-        print(string.format("Radiation   : %s Sieverts per hour", formatTrimmed(radiation, 4)))
+        print(string.format("Radiation   : %s Sv/h", formatTrimmed(radiation, 4)))
         resetColor()
     end
 

@@ -48,7 +48,7 @@ return {
     -- Notifications
     notify = {
         tts_enabled = true,
-        volume      = 2.0,
+        volume      = 3.0,  -- speaker playback volume (0.0 to 3.0)
         voice       = "",   -- espeak voice id ("" = server default, e.g. "en-gb-scotland")
         tts_word_gap = ", ", -- separator used between words when speaking
     },
