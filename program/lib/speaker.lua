@@ -43,6 +43,8 @@ local PRONUNCIATION_WORDS = {
     ["fuel"] = "fyuel",
     ["AM"] = "A , M",
     ["PM"] = "P , M",
+    ["online"] = "on line",
+    ["offline"] = "off line",
 }
 
 local PREFIX_PATTERN = "[fpnµmkMGTPEZY]?"
