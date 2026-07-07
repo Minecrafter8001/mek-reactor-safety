@@ -233,12 +233,14 @@ function safety.check(reactor, state, radiation)
             if state.active then
                 reactor.scram()
             end
-            recordEvent(STATES.LOCKED, "manual start blocked while reset lock is active")
+            if not _scrammed then
+                recordEvent(STATES.LOCKED, "manual start blocked while reset lock is active")
+            end
             events.emit("manual_enable_blocked", {
                 state = state,
                 reason = _lock_reason or "manual_reset",
             })
-        elseif _last_event_kind ~= STATES.LOCKED then
+        elseif (not _scrammed) and _last_event_kind ~= STATES.LOCKED then
             recordEvent(STATES.LOCKED, describeLockReason(state))
         end
         _last_level = STATES.LOCKED
