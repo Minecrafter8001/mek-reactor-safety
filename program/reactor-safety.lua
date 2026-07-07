@@ -50,12 +50,12 @@ end)
 
 events.on("waste_shutdown", function(data)
     logger.warn("Reactor paused due to high waste level")
-    notify.warning("Waste is full. Reactor paused until waste falls below the configured threshold.")
+    notify.warning(string.format("Waste is full. Reactor paused until waste falls below %s.", config.waste.resume_threshold))
 end)
 
 events.on("waste_recovered", function(data)
     logger.event("Waste level back below resume threshold")
-    notify.info("Waste level is back below threshold.")
+    notify.info(string.format("Waste level is below %s. Reactor resuming operation.", config.waste.resume_threshold))
 end)
 
 events.on("burn_reduced", function(data)

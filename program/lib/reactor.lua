@@ -32,13 +32,18 @@ local function safeRead(method, defaultValue, ...)
         return defaultValue, false
     end
 
-    local ok, value = pcall(fn, handle, ...)
+    -- Wrapped peripheral methods in CC:Tweaked are typically closure-style
+    -- (no explicit self). Try that first, then fall back to self-style.
+    local ok, value = pcall(fn, ...)
     if not ok then
-        local cached = _last_read_values[method]
-        if cached ~= nil then
-            return cached, false
+        ok, value = pcall(fn, handle, ...)
+        if not ok then
+            local cached = _last_read_values[method]
+            if cached ~= nil then
+                return cached, false
+            end
+            return defaultValue, false
         end
-        return defaultValue, false
     end
 
     if value == nil then
@@ -64,7 +69,11 @@ local function safeCommand(method, ...)
         return false
     end
 
-    local ok = pcall(fn, handle, ...)
+    local ok = pcall(fn, ...)
+    if ok then
+        return true
+    end
+    ok = pcall(fn, handle, ...)
     return ok
 end
 
