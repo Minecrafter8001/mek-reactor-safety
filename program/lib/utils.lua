@@ -15,6 +15,19 @@ function utils.eventTimestamp()
     return stamp
 end
 
+--- Converts event timestamp text to display-friendly dd-mm-yyyy date format.
+--- Input examples:
+---   d,m,yyyy h:mm:ss AM/PM
+---   dd,mm,yyyy h:mm:ss AM/PM
+function utils.displayEventTimestamp(value)
+    local text = tostring(value or "")
+    local day, month, year, rest = text:match("^(%d%d?),(%d%d?),(%d%d%d%d)%s+(.+)$")
+    if not day then
+        return text
+    end
+    return string.format("%02d-%02d-%s %s", tonumber(day) or 0, tonumber(month) or 0, year, rest)
+end
+
 --- Truncate a number to N decimals and trim trailing zero padding.
 function utils.formatTrimmed(value, decimals)
     local places = math.max(0, math.floor(tonumber(decimals) or 2))
