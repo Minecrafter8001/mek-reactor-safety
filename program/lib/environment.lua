@@ -65,9 +65,10 @@ local function readRadiationFromPeripheral()
     if _sensor.getRadiation then
         local ok, reading = pcall(_sensor.getRadiation)
         if ok and type(reading) == "table" then
-            local value = reading.radiation or reading.value or reading[1]
+            local rawValue = reading.radiation or reading.value or reading[1]
+            local value = tonumber(rawValue)
             local unit = reading.unit or reading.units or reading[2] or "Sv"
-            if type(value) == "number" then
+            if value ~= nil then
                 return svhFromUnitValue(value, unit), formatPeripheralRadiation(value, unit)
             end
         elseif ok and type(reading) == "number" then

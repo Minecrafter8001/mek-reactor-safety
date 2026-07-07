@@ -8,6 +8,7 @@ local _speakers = {}
 local _queue    = {}
 
 local config = require("lib.config")
+local logger = require("lib.logger")
 
 local SCALE_WORDS = {
     ["f"] = "femto",
@@ -165,6 +166,7 @@ end
 --- @param text  string  message to speak
 --- @param voice string  espeak voice id, or "" for the server default
 local function say(text, voice)
+    logger.info(string.format("[tts][say][input] %s", tostring(text or "")))
     local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(formatForTTS(text))
     if voice and voice ~= "" then
         url = url .. "&voice=" .. textutils.urlEncode(voice)
