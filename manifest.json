@@ -1,5 +1,5 @@
 {
-  "version": "1.11",
+  "version": "1.12",
   "files": [
     { "path": "startup.lua" },
     { "path": "reactor-safety.lua" },
