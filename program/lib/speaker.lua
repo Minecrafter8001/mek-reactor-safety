@@ -41,6 +41,8 @@ local TIME_WORDS = {
 
 local PRONUNCIATION_WORDS = {
     ["fuel"] = "fyuel",
+    ["AM"] = "ay em",
+    ["PM"] = "pee em",
 }
 
 local PREFIX_PATTERN = "[fpnµmkMGTPEZY]?"
@@ -122,14 +124,14 @@ local function rewriteDateTimeForTTS(text)
         "(%d%d%d%d)%-(%d%d)%-(%d%d)%s+(%d%d):(%d%d):(%d%d)",
         function(year, month, day, hour, minute, second)
             local hour12, suffix = to12Hour(hour)
-            return string.format("%s,%s,%s %d:%s:%s %s", day, month, year, hour12, minute, second, suffix)
+            return string.format("%d,%d,%s %d:%s:%s %s", tonumber(day) or 0, tonumber(month) or 0, year, hour12, minute, second, suffix)
         end
     )
 
     rewritten = rewritten:gsub(
         "(%d%d%d%d)%-(%d%d)%-(%d%d)",
         function(year, month, day)
-            return string.format("%s,%s,%s", day, month, year)
+            return string.format("%d,%d,%s", tonumber(day) or 0, tonumber(month) or 0, year)
         end
     )
 

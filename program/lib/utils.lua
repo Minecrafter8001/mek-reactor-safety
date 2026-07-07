@@ -5,6 +5,16 @@ function utils.localTimestamp()
     return os.date("%Y-%m-%d %H:%M:%S")
 end
 
+--- Returns an event timestamp formatted for display/TTS alignment.
+--- Format: d,m,yyyy h:mm:ss AM/PM (no leading zeros on day/month/hour)
+function utils.eventTimestamp()
+    local stamp = tostring(os.date("%d,%m,%Y %I:%M:%S %p"))
+    stamp = stamp:gsub("^0(%d),", "%1,")
+    stamp = stamp:gsub(",0(%d),", ",%1,")
+    stamp = stamp:gsub(" 0(%d):", " %1:")
+    return stamp
+end
+
 --- Truncate a number to N decimals and trim trailing zero padding.
 function utils.formatTrimmed(value, decimals)
     local places = math.max(0, math.floor(tonumber(decimals) or 2))
