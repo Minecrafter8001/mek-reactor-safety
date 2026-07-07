@@ -102,10 +102,53 @@ local function getPlaybackVolume()
     return volume
 end
 
+local function to12Hour(hour24)
+    local h = tonumber(hour24) or 0
+    local suffix = "AM"
+    if h >= 12 then
+        suffix = "PM"
+    end
+    h = h % 12
+    if h == 0 then
+        h = 12
+    end
+    return h, suffix
+end
+
+local function rewriteDateTimeForTTS(text)
+    local rewritten = tostring(text or "")
+
+    rewritten = rewritten:gsub(
+        "(%d%d%d%d)%-(%d%d)%-(%d%d)%s+(%d%d):(%d%d):(%d%d)",
+        function(year, month, day, hour, minute, second)
+            local hour12, suffix = to12Hour(hour)
+            return string.format("%s,%s,%s %d:%s:%s %s", day, month, year, hour12, minute, second, suffix)
+        end
+    )
+
+    rewritten = rewritten:gsub(
+        "(%d%d%d%d)%-(%d%d)%-(%d%d)",
+        function(year, month, day)
+            return string.format("%s,%s,%s", day, month, year)
+        end
+    )
+
+    rewritten = rewritten:gsub(
+        "(%d%d):(%d%d):(%d%d)",
+        function(hour, minute, second)
+            local hour12, suffix = to12Hour(hour)
+            return string.format("%d:%s:%s %s", hour12, minute, second, suffix)
+        end
+    )
+
+    return rewritten
+end
+
 local function formatForTTS(text)
     local notifyConfig = config.notify or {}
     local wordGap = notifyConfig.tts_word_gap
 
+    text = rewriteDateTimeForTTS(text)
     text = expandUnits(text)
 
     for source, replacement in pairs(PRONUNCIATION_WORDS) do
@@ -166,8 +209,10 @@ end
 --- @param text  string  message to speak
 --- @param voice string  espeak voice id, or "" for the server default
 local function say(text, voice)
-    logger.info(string.format("[tts][say][input] %s", tostring(formatForTTS(text) or "")))
-    local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(formatForTTS(text))
+    local formattedText = formatForTTS(text)
+    logger.info(string.format("[tts][say][input] %s", tostring(text or "")))
+    logger.info(string.format("[tts][say][formatted] %s", tostring(formattedText or "")))
+    local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(formattedText)
     if voice and voice ~= "" then
         url = url .. "&voice=" .. textutils.urlEncode(voice)
     end
