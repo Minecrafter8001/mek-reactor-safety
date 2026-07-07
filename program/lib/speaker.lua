@@ -166,7 +166,7 @@ end
 --- @param text  string  message to speak
 --- @param voice string  espeak voice id, or "" for the server default
 local function say(text, voice)
-    logger.info(string.format("[tts][say][input] %s", tostring(text or "")))
+    logger.info(string.format("[tts][say][input] %s", tostring(formatForTTS(text) or "")))
     local url = "https://music.madefor.cc/tts?text=" .. textutils.urlEncode(formatForTTS(text))
     if voice and voice ~= "" then
         url = url .. "&voice=" .. textutils.urlEncode(voice)
