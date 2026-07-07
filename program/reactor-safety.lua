@@ -38,6 +38,16 @@ events.on("warning", function(data)
     notify.warning("Reactor safety warning. Monitor conditions.")
 end)
 
+events.on("manual_shutdown", function(data)
+    logger.event("Manual shutdown detected")
+    notify.info("Manual shutdown detected.")
+end)
+
+events.on("manual_enable_blocked", function(data)
+    logger.warn("Manual reactor start blocked by reset lock")
+    notify.warning("Reset lock active. Manual reactor start blocked. Press R to clear lock.")
+end)
+
 events.on("burn_reduced", function(data)
     if data and data.from_pct and data.to_pct then
         logger.warn(string.format(

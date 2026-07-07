@@ -31,6 +31,7 @@ local _last_burn_reduction = nil
 local _last_event_kind = nil
 local _last_event_time  = nil
 local _last_event_note  = nil
+local _prev_active_state = nil
 
 local function recordEvent(kind, note)
     _last_event_kind = kind
@@ -149,6 +150,9 @@ local function describeLockReason(state)
     if _lock_reason == "fuel_empty" or (state.fuel_pct or 0) <= 0 then
         return "fuel is empty"
     end
+    if _lock_reason == "manual_shutdown" then
+        return "reactor was manually shut down"
+    end
     if _lock_reason == "reactor_off" or not state.active then
         return "reactor is offline"
     end
@@ -203,6 +207,19 @@ end
 function safety.check(reactor, state, radiation)
     radiation = radiation or 0
 
+    local became_inactive = (_prev_active_state == true and state.active == false)
+    local became_active = (_prev_active_state == false and state.active == true)
+    local manual_shutdown = became_inactive
+        and (not _scrammed)
+        and (not _reset_required)
+        and ((state.fuel_pct or 0) > 0)
+        and (not state.force_disabled)
+
+    if manual_shutdown then
+        recordEvent("MANUAL_SHUTDOWN", "reactor was manually shut down")
+        events.emit("manual_shutdown", { state = state, reason = "manual_shutdown" })
+    end
+
     if not _startup_checked then
         _reset_required = (not state.active) or ((state.fuel_pct or 0) <= 0)
         if _reset_required then
@@ -211,8 +228,17 @@ function safety.check(reactor, state, radiation)
         _startup_checked = true
     end
 
-    if _reset_required and ((not state.active) or ((state.fuel_pct or 0) <= 0)) then
-        if _last_event_kind ~= STATES.LOCKED then
+    if _reset_required then
+        if became_active then
+            if state.active then
+                reactor.scram()
+            end
+            recordEvent(STATES.LOCKED, "manual start blocked while reset lock is active")
+            events.emit("manual_enable_blocked", {
+                state = state,
+                reason = _lock_reason or "manual_reset",
+            })
+        elseif _last_event_kind ~= STATES.LOCKED then
             recordEvent(STATES.LOCKED, describeLockReason(state))
         end
         _last_level = STATES.LOCKED
@@ -221,6 +247,7 @@ function safety.check(reactor, state, radiation)
         _last_radiation = radiation
         _last_burn_reduction = nil
         _prev_level = STATES.LOCKED
+        _prev_active_state = state.active
         return STATES.LOCKED
     end
 
@@ -302,6 +329,7 @@ function safety.check(reactor, state, radiation)
     end
 
     _prev_level = level
+    _prev_active_state = state.active
     return level
 end
 

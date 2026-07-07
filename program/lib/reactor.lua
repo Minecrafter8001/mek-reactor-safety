@@ -20,7 +20,7 @@ function reactor.getState()
     if not _handle then
         error("Reactor peripheral not initialised")
     end
-    local max_burn_rate = _handle.getMaxBurnRate and _handle.getMaxBurnRate() or nil
+    local max_burn_rate = _handle.getMaxBurnRate()
     local burn_rate = _handle.getBurnRate()
     return {
         temp               = _handle.getTemperature(),

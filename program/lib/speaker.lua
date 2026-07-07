@@ -41,8 +41,8 @@ local TIME_WORDS = {
 
 local PRONUNCIATION_WORDS = {
     ["fuel"] = "fyuel",
-    ["AM"] = "ay em",
-    ["PM"] = "pee em",
+    ["AM"] = "A , M",
+    ["PM"] = "P , M",
 }
 
 local PREFIX_PATTERN = "[fpnµmkMGTPEZY]?"
