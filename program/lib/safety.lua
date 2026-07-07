@@ -419,7 +419,7 @@ function safety.buildAnnouncement()
     if _last_event_time then
         message = message .. string.format(" Last event is %s at %s", eventLabel(_last_event_kind), _last_event_time)
         if _last_event_note and _last_event_note ~= "" then
-            message = message .. string.format(", , reason: (%s).", _last_event_note)
+            message = message .. string.format("  reason %s.", _last_event_note)
         else
             message = message .. "."
         end
