@@ -32,6 +32,7 @@ local _last_event_kind = nil
 local _last_event_time  = nil
 local _last_event_note  = nil
 local _prev_active_state = nil
+local _waste_shutdown = false
 
 local function recordEvent(kind, note)
     _last_event_kind = kind
@@ -102,9 +103,6 @@ local function describeWarningReasons(state, radiation)
     if state.coolant_pct <= config.coolant.warning then
         reasons[#reasons + 1] = string.format("coolant at %s", formatPercent(state.coolant_pct))
     end
-    if state.waste_pct >= config.waste.warning then
-        reasons[#reasons + 1] = string.format("waste at %s", formatPercent(state.waste_pct))
-    end
     if radiation >= config.radiation.warning then
         reasons[#reasons + 1] = string.format("radiation at %s", environment.formatRadiation(radiation))
     end
@@ -119,8 +117,6 @@ local function describeScramReason(reason, state, radiation)
         return string.format("temperature critical at %s K", utils.formatTrimmed(state.temp or 0, 1))
     elseif reason == "coolant_critical" then
         return string.format("coolant critical at %s", formatPercent(state.coolant_pct))
-    elseif reason == "waste_critical" then
-        return string.format("waste critical at %s", formatPercent(state.waste_pct))
     elseif reason == "radiation_critical" then
         return string.format("radiation critical at %s", environment.formatRadiation(radiation or 0))
     end
@@ -170,9 +166,6 @@ local function evaluate(state, radiation)
     if state.coolant_pct <= config.coolant.critical then
         return STATES.SCRAM, "coolant_critical"
     end
-    if state.waste_pct >= config.waste.critical then
-        return STATES.SCRAM, "waste_critical"
-    end
     if radiation >= config.radiation.critical then
         return STATES.SCRAM, "radiation_critical"
     end
@@ -181,7 +174,6 @@ local function evaluate(state, radiation)
     end
     if state.temp        >= config.temp.warning
     or state.coolant_pct <= config.coolant.warning
-    or state.waste_pct   >= config.waste.warning
     or radiation         >= config.radiation.warning then
         return STATES.WARNING, nil
     end
@@ -207,11 +199,49 @@ end
 function safety.check(reactor, state, radiation)
     radiation = radiation or 0
 
+    -- Waste pause mode: full waste triggers shutdown but never SCRAM/lock.
+    if _waste_shutdown and (state.waste_pct or 0) < config.waste.start then
+        _waste_shutdown = false
+        recordEvent("WASTE_RECOVERED", string.format("waste dropped to %s", formatPercent(state.waste_pct)))
+        events.emit("waste_recovered", { state = state, waste_pct = state.waste_pct })
+    end
+
+    if (state.waste_pct or 0) >= config.waste.stop then
+        if not _waste_shutdown then
+            _waste_shutdown = true
+            recordEvent(
+                "WASTE_SHUTDOWN",
+                string.format("waste at %s, waiting for waste below %s", formatPercent(state.waste_pct), formatPercent(config.waste.start))
+            )
+            events.emit("waste_shutdown", {
+                state = state,
+                waste_pct = state.waste_pct,
+                resume_threshold = config.waste.start,
+            })
+        end
+    end
+
+    if _waste_shutdown and state.active then
+        reactor.scram()
+    end
+
+    if _waste_shutdown then
+        _last_level = STATES.NORMAL
+        _last_reason = nil
+        _last_state = copyState(state)
+        _last_radiation = radiation
+        _last_burn_reduction = nil
+        _prev_level = STATES.NORMAL
+        _prev_active_state = state.active
+        return STATES.NORMAL
+    end
+
     local became_inactive = (_prev_active_state == true and state.active == false)
     local became_active = (_prev_active_state == false and state.active == true)
     local manual_shutdown = became_inactive
         and (not _scrammed)
         and (not _reset_required)
+        and (not _waste_shutdown)
         and ((state.fuel_pct or 0) > 0)
         and (not state.force_disabled)
 

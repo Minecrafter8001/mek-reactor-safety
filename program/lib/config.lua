@@ -10,10 +10,13 @@ return {
         warning  = 0.30,
         critical = 0.20,
     },
-    -- Waste thresholds (0–1 fraction)
+    -- Waste control thresholds (0–1 fraction)
+    -- Waste no longer triggers WARNING/SCRAM directly.
+    -- If waste reaches stop, the reactor is paused (shut down) until
+    -- waste falls back below start.
     waste = {
-        warning  = 0.80,
-        critical = 0.95,
+        start = 0.20, -- resume threshold (auto-clear waste pause below this)
+        stop  = 0.95, -- pause threshold (shut down reactor at/above this)
     },
     -- Damage: any nonzero value triggers SCRAM
     damage = {

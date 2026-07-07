@@ -48,6 +48,16 @@ events.on("manual_enable_blocked", function(data)
     notify.warning("Reset lock active. Manual reactor start blocked. Press R to clear lock.")
 end)
 
+events.on("waste_shutdown", function(data)
+    logger.warn("Reactor paused due to high waste level")
+    notify.warning("Waste is full. Reactor paused until waste falls below the configured threshold.")
+end)
+
+events.on("waste_recovered", function(data)
+    logger.event("Waste level back below resume threshold")
+    notify.info("Waste level is back below threshold.")
+end)
+
 events.on("burn_reduced", function(data)
     if data and data.from_pct and data.to_pct then
         logger.warn(string.format(
