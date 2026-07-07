@@ -41,9 +41,17 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
     term.clear()
     term.setCursorPos(1, 1)
 
-    setColor(STATE_COLORS[level])
+    local statusLabel = STATE_LABELS[level] or level
+    local statusColor = STATE_COLORS[level]
+
+    if state and state.active == false and level ~= safety.STATES.SCRAM and level ~= safety.STATES.LOCKED then
+        statusLabel = "OFFLINE"
+        statusColor = STATE_COLORS.WARNING
+    end
+
+    setColor(statusColor)
     print("=== Reactor Safety Controller ===")
-    print(string.format("Status      : %s", STATE_LABELS[level] or level))
+    print(string.format("Status      : %s", statusLabel))
     resetColor()
     print("")
 

@@ -101,8 +101,6 @@ parallel.waitForAll(
             elseif keyCode == keys.r then
                 local ok, reason = safety.requestReset(reactor)
                 if ok then
-                    logger.event("Manual reset confirmed")
-                    notify.info("Reset confirmed. Reactor restart requested.")
                 else
                     logger.warn("Reset request denied: " .. (reason or "unknown"))
                     notify.warning("Reset not allowed. " .. (reason or "unknown"))
