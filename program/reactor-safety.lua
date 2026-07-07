@@ -75,7 +75,6 @@ parallel.waitForAll(
 
             local rad_msg = environment.getRadiationAnnouncement()
             if rad_msg then
-                logger.warn(rad_msg)
                 notify.warning(rad_msg)
             end
 

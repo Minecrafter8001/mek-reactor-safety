@@ -21,13 +21,20 @@ return {
     },
     -- Radiation (Sv/h)
     -- Mekanism background radiation is ~99.9999 nSv/h (9.99999e-8 Sv/h).
-    -- warning  : above-background level; triggers safety WARNING state and TTS announcements
-    -- critical : SCRAM threshold
+    -- Gameplay effects are based on:
+    --   scaled = clamp((ln(trueRadiation) + 5) / 7, 0..1)
+    --   chance in [0.1, 1.0]
+    --   damage when scaled > chance
+    -- Key breakpoints:
+    --   scaled = 0.1  -> trueRadiation ~= 0.0135 Sv/h (13.5 mSv/h), first possible damage
+    --   scaled = 0.55 -> trueRadiation ~= 0.316 Sv/h, ~50% damage/hunger tick chance
+    -- warning  : pre-effect early warning below first-damage threshold
+    -- critical : severe exposure SCRAM threshold around high per-tick hit probability
     -- announce_interval : minimum seconds between repeated radiation level TTS alerts
     radiation = {
         baseline          = 9.99999e-8, -- 99.9999 nSv/h background level
-        warning           = 1e-7,  -- ~100 nSv/h (background)
-        critical          = 1e-3,  -- 1 mSv/h
+        warning           = 1e-2,  -- 10 mSv/h early warning (pre-damage zone)
+        critical          = 3.16e-1, -- 316 mSv/h severe zone (~50% tick damage chance)
         announce_interval = 60,    -- seconds
     },
     -- Burn rate control (mB/t)

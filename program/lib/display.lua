@@ -1,4 +1,5 @@
 local display = {}
+local config = require("lib.config")
 local environment = require("lib.environment")
 local safety = require("lib.safety")
 local utils = require("lib.utils")
@@ -64,7 +65,10 @@ function display.render(state, level, radiation, scrammed, resetRequired, damage
     print(string.format("Damage      : %s%%",    utils.formatTrimmed(state.damage, 2)))
 
     if radiation and radiation > 0 then
-        setColor(STATE_COLORS.WARNING)
+        local warningThreshold = (config.radiation and config.radiation.warning) or math.huge
+        if radiation >= warningThreshold then
+            setColor(STATE_COLORS.WARNING)
+        end
         print(string.format("Radiation   : %s", environment.formatRadiation(radiation)))
         resetColor()
     end
